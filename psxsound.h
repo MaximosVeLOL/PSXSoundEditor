@@ -19,7 +19,18 @@ using namespace std;
 
 
 
-struct VBBlock { //Taken from CKDEV's comment in the Parappa Modding Discord
+
+#define PSX_HEADER_SOUND_START 0x00
+#define PSX_HEADER_SOUND_END_V1 0x07
+#define PSX_HEADER_SOUND_END_V2 0x77
+
+
+
+
+
+
+//Taken from CKDEV's comment in the Parappa Modding Discord
+struct VBBlock { //A block of VAG data seen in VB files
 	uint8_t ShiftAndFilter; //Don't know any of this
 	uint8_t Flag; //Don't know any of this (looping is all i know)
 	uint8_t ADPCM[14];
@@ -43,10 +54,10 @@ struct ProgramAttributes {
 	uint8_t priority = 0; //(Yaroze: N/A)
 	uint8_t mode = 0; //(Yaroze: N/A)
 	uint8_t Master_Pan = 0; //(Yaroze: 0..127)
-	uint8_t Reserved0;
-	short Attribute; //(Yaroze: N/A)
-	int Reserved1;
-	int Reserved2;
+	uint8_t Reserved0 = 0;
+	short Attribute = 0; //(Yaroze: N/A)
+	int Reserved1 = 0xFFFF;
+	int Reserved2 = 0xFFFF;
 };
 
 struct ToneAttributes {
@@ -60,20 +71,23 @@ struct ToneAttributes {
 	uint8_t max; //That's me! Note limit maximum value
 	
 	
-	//These 2 are reverb?
-	uint8_t vibW, vibT;
+	//These 2 are reverb? (Evidence: PSXDEV discord)
+	uint8_t vibW = 0, vibT = 0;
 
 	//What are these 2?
-	uint8_t porW, porT;
+	uint8_t porW = 0, porT = 0;
 
-	uint8_t PBmin; //Max? value for downwards pitchbend  (Yaroze: 0..127)
-	uint8_t PBmax; //Max value for upwards pitchbend     (Yaroze: 0..127)
-	short Reserved1And2Combined;
-	short AttackDecay;
-	short ReleaseSustain;
-	short ProgramNumber; // Program number that tone belongs to (Yaroze: 0..127)
-	short VAG_ID; //VAG Number
-	long reserved;
+	uint8_t PBmin = 0; //Max? value for downwards pitchbend  (Yaroze: 0..127)
+	uint8_t PBmax = 0; //Max value for upwards pitchbend     (Yaroze: 0..127)
+	
+	uint8_t Reserved = 0;
+	uint8_t Reserved1 = 0;
+
+	short AttackDecay = 0;
+	short ReleaseSustain = 0;
+	short ProgramNumber = 0; // Program number that tone belongs to (Yaroze: 0..127)
+	short VAG_ID = 0; //VAG Number
+	long Reserved2 = 0;
 };
 
 struct VHFile {
@@ -93,17 +107,19 @@ struct VHFile {
 	int ReservedAgain = 0xFFFFFFFF;
 
 	//This is for each VAG
-	ProgramAttributes *prgAttr = 0;
-	ToneAttributes *tnAttr = 0;
+	ProgramAttributes *prgAttr = nullptr;
+	ToneAttributes *tnAttr = nullptr;
 
-	size_t* VagSizes = nullptr; //16 bit sizes (div8) for VAG 0x00-0xFF
+	short* VagSizes = nullptr; //16 bit sizes (div8) for VAG 0x00-0xFF
 	
 
 	//ADPCM data is also here, if we were a VAB!!!
 };
 
-VHFile ImportVH(string fileName);
+VHFile PSX_ImportVH(string fileName);
 
-VBFile ImportVB(string fileName);
+void PSX_ShowVHData(VHFile* in);
 
-void ExportVAGFromVBFile(VBFile* in);
+VBFile PSX_ImportVB(string fileName);
+
+void PSX_ExportVAGFromVBFile(VBFile* in);

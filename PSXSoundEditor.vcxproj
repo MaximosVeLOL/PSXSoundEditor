@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
@@ -20,11 +20,12 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="sound.cpp" />
+    <ClCompile Include="psxsound.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="LIBSPU.H" />
-    <ClInclude Include="sound.h" />
+    <ClInclude Include="maxsound.h" />
+    <ClInclude Include="psxsound.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>
