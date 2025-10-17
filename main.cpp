@@ -1,63 +1,110 @@
-#include <iostream>
+//#include <iostream>
 #include <fstream>
-#include <vector>
+//#include <vector>
+#include <string>
+#include <filesystem>
 using namespace std;
 
-void ReadVBFile(string fileName) {
-	ifstream VB(fileName, ios::binary);
-	if (!VB || !VB.is_open()) {
+#include "sound.h"
+
+
+
+
+
+int main() {
+	ifstream File_VB("./x64/Debug/test2.VB", ios::binary);
+	if (!File_VB || !File_VB.is_open()) {
 		cout << "Failed to open file!" << endl;
-		return;
+		return -1;
 	}
-	cout << "Successfully opened file!" << endl;
+
+	size_t soundSize = 200000;
+
+	vector<VBBlock> sound;
+	char currentByte;
+
+	VBBlock currentBlock;
+	uint8_t soundCount = 0;
+	filesystem::create_directory("./x64/Debug/OUTFINAL");
+	while (File_VB) {
+		if (File_VB.peek() == -1) break;
 
 
-	vector<uint8_t> soundPacket; //The packet that we are exporting
-	char currentLine[16]; //All the data we read in a line
-	//ofstream outputSound;
+		//cout << "Read shift and filter" << endl;
+		//cout << "Current: ";
+		File_VB.get(currentByte);
+		currentBlock.ShiftAndFilter = currentByte;
+		//cout << (int)currentByte << " ";
 
-	bool readFile = false; //Just incase a new sound doesn't immediately appear after sound ends...
-	uint16_t soundCount = 0; //We only need this for output LOL out loud
 
-	while (VB) {
-		if (VB) {
-			//cout << "At " << VB.tellg() << endl;
 			
-			for (int i = 0; i < 16; i++) {
-				VB.get(currentLine[i]);
-				if (readFile) {
-					soundPacket.push_back(currentLine[i]);
-				}
-			}
-			if (currentLine[0] == 0x00) { //Check first, second, third and last byte of every line... So four bytes total needed!
-				if (currentLine[1] == 0x00 && currentLine[2] == 0x00 && currentLine[15] == 0x00) {
-					cout << "New sound detected!" << endl;
-					soundCount++;
-					readFile = true;
-				}
-				if (currentLine[1] == 0x07 && (currentLine[2] == 0x77 && currentLine[15] == 0x77 || currentLine[2] == 0x07 && currentLine[15] == 0x07)) {
-					cout << "End sound detected!" << endl;
-					ofstream outputSound("test" + char('0' + soundCount));
-					if (!outputSound || !outputSound.is_open()) {
-						cout << "Failed to create sound." << endl;
-						return;
-					}
-					for (int i = 0; i < soundPacket.size(); i++) {
-						outputSound << soundPacket.at(i);
-					}
-					outputSound.close();
-					soundPacket.erase(soundPacket.begin());
-					readFile = false;
-				}
-			}
-			//cout << "Line value: " << lineValue << endl;
-			//cout << "Line: " << CharAsRealValue(currentLine) << endl;
+		File_VB.get(currentByte);
+		currentBlock.Flag = currentByte;
+		//cout << (int)currentByte << " ";
+		//cout << "Read ADPCM" << endl;
+			
+		for (uint8_t ADPCMIndex = 0; ADPCMIndex < 14; ADPCMIndex++) {
+			File_VB.get(currentByte);
+			currentBlock.ADPCM[ADPCMIndex] = currentByte;
+			//cout << (int)currentByte << " ";
 		}
+		//cout << endl;
+		bool soundCounts = true;
+
+		if (currentBlock.ShiftAndFilter == 0x00) {
+			//cout << "Found something!" << endl;
+			//cout << (int)currentBlock.ShiftAndFilter << " " << (int)currentBlock.Flag << " ";
+			/*for (uint8_t ADPCMIndex = 0; ADPCMIndex < 14; ADPCMIndex++) {
+				cout << (int)currentBlock.ADPCM[ADPCMIndex] << " ";
+			}*/
+			//cout << endl;
+			if (currentBlock.Flag == 0x00) {
+				uint8_t i = 0;
+				for (; i < 14; i++) {
+					if (currentBlock.ADPCM[i] != 0x00) break;
+				}
+				if (i == 14) {
+					cout << "AAAAAAAAAAAAAAAAAAA" << File_VB.tellg() << endl;
+					soundCounts = false;
+					soundCount++;
+				}
+			}
+			else if (currentBlock.Flag == 0x07) {
+				uint8_t i = 0;
+				for (; i < 14; i++) {
+					if (currentBlock.ADPCM[i] != 0x77 && currentBlock.ADPCM[i] != 0x07) break;
+				}
+				if (i == 14) {
+					cout << "EEEEEEE!" << endl;
+					soundCounts = false;
+					ofstream outFile("./x64/Debug/OUTFINAL/sound" + to_string(soundCount) + ".raw", ios::binary);
+					if (!outFile || !outFile.is_open()) {
+						cout << "Failed to create file." << endl;
+						return -1;
+					}
+					for (auto &element : sound) {
+						outFile << element.ShiftAndFilter;
+						outFile << element.Flag;
+						for (uint8_t ad = 0; ad < 14; ad++) {
+							outFile << element.ADPCM[ad];
+						}
+					}
+					outFile.close();
+					sound.erase(sound.begin(), sound.end());
+				
+				}
+
+			}
+			//break;
+
+		}
+
+		if (soundCounts) sound.push_back(currentBlock);
+
+		//cout << "End of " << File_VB.tellg() << endl;
 	}
-}
+	//cout << "End for loop";
 
 
-
-int main(int argc, const char **argv) {
-	ReadVBFile("test2.VB");
+	return 0x00;
 }
