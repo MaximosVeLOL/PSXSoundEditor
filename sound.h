@@ -103,3 +103,7 @@ struct VHFile {
 };
 
 VHFile ImportVH(string fileName);
+
+VBFile ImportVB(string fileName);
+
+void ExportVAGFromVBFile(VBFile* in);
