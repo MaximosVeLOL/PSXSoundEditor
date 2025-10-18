@@ -33,13 +33,14 @@ using namespace std;
 struct VBBlock { //A block of VAG data seen in VB files
 	uint8_t ShiftAndFilter; //Don't know any of this
 	uint8_t Flag; //Don't know any of this (looping is all i know)
-	uint8_t ADPCM[14];
+	uint8_t ADPCM[14]; //Always 14 bytes.
 };
 
 
 
-struct VBFile {
+struct VBFile { //I wanted to be able to return the vector files, so here we go!
 	vector< vector<VBBlock> > sounds;
+	string fileName;
 };
 
 
@@ -61,7 +62,7 @@ struct ProgramAttributes {
 };
 
 struct ToneAttributes {
-	uint8_t priority = 0; // 127 = highest
+	uint8_t priority = 0; // 127 = highest, used for when the PCM buffer (?) gets overloaded, and it stops playing some sounds.
 	uint8_t mode = 0; //0 = normal, 4 - reverb
 	uint8_t vol = 0; //(Yaroze: 0..127)
 	uint8_t panning = 0; //(Yaroze: 0..127)

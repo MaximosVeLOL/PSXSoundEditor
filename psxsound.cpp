@@ -23,7 +23,7 @@ void ThrowError(ErrorCode type, string message) {
 
 
 
-
+//File parameter, because I am going to use this for maxsound.h
 uint8_t VH_ReadAsByte(ifstream* fileStream) { //Do we really need this?
 	char returnValue = 0xFF;
 	if(fileStream->peek() != -1)
@@ -66,6 +66,20 @@ size_t VH_ReadAsSizeT(ifstream* fileStream) {
 	}
 	return returnValue;
 }
+
+
+string GetFilename(string fileName) {
+	string returnValue;
+	for (uint8_t i = 0; i < fileName.length(); i++) { //Who's going to have a string with a length greater than 255?
+		if (fileName[i] == '.') break;
+		returnValue += fileName[i];
+		if (fileName[i] == '/' || fileName[i] == '\\') returnValue = "";
+		
+	}
+	return returnValue;
+}
+
+
 
 
 extern VHFile PSX_ImportVH(std::string fileName) {
@@ -170,6 +184,9 @@ extern VHFile PSX_ImportVH(std::string fileName) {
 		t->VAG_ID = VH_ReadAsShort(&File_VH);
 		t->Reserved2 = VH_ReadAsLong(&File_VH); //Had to make a function for this...
 	}
+	for (i = 0; i < returnValue.VagAmount; i++) {
+		returnValue.VagSizes[i] = VH_ReadAsShort(&File_VH);
+	}
 
 	
 	cout << "Sucessfully read VH File!" << endl;
@@ -198,7 +215,7 @@ extern void PSX_ShowVHData(VHFile* in) {
 
 	short i = 0;
 	for (; i < in->ProgramAmount; i++) {
-		cout << "Information " << i << ':' << endl;
+		cout << "Program Information " << i << ':' << endl;
 		ProgramAttributes* current = &in->prgAttr[i];
 		cout << "	Tone Amount: " << (int)current->ToneAmount << endl;
 
@@ -217,6 +234,49 @@ extern void PSX_ShowVHData(VHFile* in) {
 		cout << "	Reserved (2/3): " << current->Reserved1 << endl;
 		cout << "	Reserved (3/3): " << current->Reserved2 << endl;
 	}
+	for (i = 0; i < in->ToneAmount; i++) {
+		ToneAttributes* t = &in->tnAttr[i];
+		
+		cout << "	Tone information " << i << ':' << endl;
+
+
+		cout << "	Priority: " << (int)t->priority << endl;
+
+		cout << "	Mode: " << (int)t->mode << endl;
+
+		cout << "	Vol: " << (int)t->vol << endl;
+
+		cout << "	Panning: " << (int)t->panning << endl;
+
+		cout << "	Center: " << (int)t->center << endl;
+
+		cout << "	Shift: " << (int)t->shift << endl;
+
+		cout << "	Vib W: " << (int)t->vibW << endl;
+		cout << "	Vib T: " << (int)t->vibT << endl;
+
+
+		cout << "	Por W: " << (int)t->vibW << endl;
+		cout << "	Por T: " << (int)t->vibT << endl;
+
+		cout << "	PB Min: " << (int)t->PBmin << endl;
+		cout << "	PB Max: " << (int)t->PBmax << endl;
+
+		cout << "	Reserved (1/3): " << (int)t->Reserved << endl;
+		cout << "	Reserved (2/3): " << (int)t->Reserved1 << endl;
+
+
+		cout << "	Attack & Decay: " << t->AttackDecay << endl;
+		cout << "	Release & Sustain: " << t->ReleaseSustain << endl;
+		cout << "	Program Number: " << t->ProgramNumber << endl;
+		cout << "	VAG ID: " << t->VAG_ID << endl;
+		cout << "	Reserved (3/3): " << t->Reserved2 << endl;
+
+
+	}
+	for (i = 0; i < in->VagAmount; i++) {
+		cout << "Vag Size " << i << ": " << in->VagSizes[i] << endl;
+	}
 
 
 
@@ -230,19 +290,16 @@ extern void PSX_ShowVHData(VHFile* in) {
 extern VBFile PSX_ImportVB(string fileName) {
 	VBFile returnValue;
 	ifstream File_VB(fileName, ios::binary);
+	
 	if (!File_VB || !File_VB.is_open()) {
-		cout << "Failed to open file!" << endl;
-		//return returnValue;
+		ThrowError(ErrorCode::FileOperation, "Failed to open file!");
 	}
 	
+	returnValue.fileName = GetFilename(fileName); //Bruh
 	size_t soundSize = 200000;
 	char currentByte;
 
 	VBBlock currentBlock;
-
-
-
-	//filesystem::create_directory("./x64/Debug/OUTFINAL");
 
 	while(File_VB) {
 		//if (File_VB.peek() == -1) break;
@@ -278,7 +335,7 @@ extern VBFile PSX_ImportVB(string fileName) {
 			else if (currentBlock.Flag == 0x07) {
 				uint8_t i = 0;
 				for (; i < 14; i++) { //Check ALL of the ADPCM, because even though we only need to check 4 bytes, there are still some cases where we falsely think the ADPCM is a header.
-					if (currentBlock.ADPCM[i] != PSX_HEADER_SOUND_END_V1 && currentBlock.ADPCM[i] != PSX_HEADER_SOUND_END_V2) {
+					if (currentBlock.ADPCM[i] != PSX_HEADER_SOUND_END_V1 && currentBlock.ADPCM[i] != PSX_HEADER_SOUND_END_V2 && currentBlock.ADPCM[i] != PSX_HEADER_SOUND_START) { //Check for sound start because in other games, it has that. Pick a header already!
 						break;
 					}
 				}
@@ -294,7 +351,8 @@ extern VBFile PSX_ImportVB(string fileName) {
 
 		//cout << "End of " << File_VB.tellg() << endl;
 	}
-	cout << "Sucessfully read information!\nInfo: Size: " << returnValue.sounds.size() << endl;
+	cout << "Successfully read information!" << endl;
+	//cout << "Sucessfully read information!\nInfo: Size: " << returnValue.sounds.size() << endl;
 	return returnValue;
 }
 
@@ -302,14 +360,15 @@ void PSX_ExportVAGFromVBFile(VBFile* in) {
 	ofstream outFile;
 	
 
-	filesystem::create_directory("./x64/Debug/OutVersion2");
+
+	filesystem::create_directory("OutSound_" + in->fileName);
 
 	uint8_t VB_SIZE = in->sounds.size();
 	for (uint8_t VAG_Index = 0; VAG_Index < VB_SIZE; VAG_Index++) {
 		vector<VBBlock>& currentVAG = in->sounds.at(VAG_Index);
 
 
-		outFile.open("./x64/Debug/OutVersion2/sound" + to_string(VAG_Index + 1) + ".raw", ios::binary);
+		outFile.open("./Out_" + in->fileName + "/sound" + to_string(VAG_Index + 1) + ".raw", ios::binary);
 		if (!outFile || !outFile.is_open()) {
 			ThrowError(ErrorCode::FileOperation, "Failed to create file.");
 		}
@@ -327,4 +386,5 @@ void PSX_ExportVAGFromVBFile(VBFile* in) {
 		}
 		outFile.close();
 	}
+	cout << "Sucessfully exported all VAGs!" << endl;
 }
