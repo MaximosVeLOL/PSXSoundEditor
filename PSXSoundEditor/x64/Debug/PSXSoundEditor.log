@@ -1,4 +1,0 @@
-﻿  psxsound.cpp
-M:\source\PSXSoundEditor\psxsound.cpp(28,21): warning C4309: 'initializing': truncation of constant value
-M:\source\PSXSoundEditor\psxsound.cpp(366,18): warning C4267: 'initializing': conversion from 'size_t' to 'uint8_t', possible loss of data
-  PSXSoundEditor.vcxproj -> M:\source\PSXSoundEditor\x64\Debug\psfxeditor.exe
